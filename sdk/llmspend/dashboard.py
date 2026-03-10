@@ -32,7 +32,9 @@ def _query(sql: str, params: tuple = ()) -> list[dict]:
 def _api_summary(period: str) -> dict:
     """Return full dashboard data."""
     interval_map = {"1h": "1 hour", "24h": "24 hours", "7d": "7 days", "30d": "30 days"}
-    interval = interval_map.get(period, "24 hours")
+    if period not in interval_map:
+        period = "24h"
+    interval = interval_map[period]
 
     total = _query(f"""
         SELECT COUNT(*) as calls, SUM(cost_usd) as total_cost,
@@ -192,13 +194,14 @@ async function load() {
 
 function fmt(n) { return n == null ? '$0.00' : '$' + n.toFixed(4); }
 function fmtK(n) { return n >= 1000 ? (n/1000).toFixed(1) + 'K' : n.toString(); }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
 function barChart(items, maxCost) {
   if (!items.length) return '<div class="empty">No data</div>';
   const max = maxCost || Math.max(...items.map(i => i.cost || 0)) || 1;
   return items.map(i => {
     const pct = ((i.cost || 0) / max * 100).toFixed(1);
-    const label = i.name || '(none)';
+    const label = esc(i.name || '(none)');
     return `<div class="bar-row">
       <div class="bar-label" title="${label}">${label}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
@@ -230,12 +233,12 @@ function render(d) {
   const topRows = (d.top_calls || []).slice(0, 10).map(c =>
     `<tr>
       <td>${(c.timestamp||'').slice(11,19)}</td>
-      <td>${(c.model||'').slice(0,28)}</td>
+      <td>${esc((c.model||'').slice(0,28))}</td>
       <td>${fmtK(c.tokens_in||0)}/${fmtK(c.tokens_out||0)}</td>
       <td class="cost-cell">${fmt(c.cost_usd)}</td>
       <td>${c.latency_ms||0}ms</td>
-      <td>${c.feature||'-'}</td>
-      <td>${c.user_id||'-'}</td>
+      <td>${esc(c.feature||'-')}</td>
+      <td>${esc(c.user_id||'-')}</td>
     </tr>`
   ).join('');
 

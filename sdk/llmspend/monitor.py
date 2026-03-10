@@ -10,8 +10,22 @@ import time
 from datetime import datetime, timezone
 from typing import Any
 
+import re
+
 from llmspend.pricing import calculate_cost
 from llmspend import transport
+
+# Pattern to detect API keys/tokens in error messages
+_SECRET_PATTERN = re.compile(
+    r'(sk-[a-zA-Z0-9]{10,}|Bearer\s+[a-zA-Z0-9_\-]{10,}|key-[a-zA-Z0-9]{10,})',
+    re.IGNORECASE
+)
+
+
+def _safe_error(error: Exception) -> str:
+    """Extract error type and message, redacting any API keys or tokens."""
+    msg = f"{type(error).__name__}: {str(error)[:200]}"
+    return _SECRET_PATTERN.sub("[REDACTED]", msg)
 
 
 def configure(backend_url: str | None = None, api_key: str | None = None,
@@ -40,6 +54,10 @@ def wrap(client: Any, project: str = "default", **default_metadata) -> Any:
         The same client object, with cost tracking enabled.
         The returned object has the identical API — no code changes needed.
     """
+    # Prevent double-wrapping the same client
+    if getattr(client, "_llmspend_wrapped", False):
+        return client
+
     provider = _detect_provider(client)
     if provider is None:
         # Unknown client — return as-is, don't break anything
@@ -50,6 +68,7 @@ def wrap(client: Any, project: str = "default", **default_metadata) -> Any:
     elif provider == "openai":
         _wrap_openai(client, project, default_metadata)
 
+    client._llmspend_wrapped = True
     return client
 
 
@@ -108,7 +127,7 @@ def _wrap_anthropic(client: Any, project: str, default_meta: dict):
                     "cost_usd": cost,
                     "latency_ms": elapsed,
                     "status": status,
-                    "error": str(error)[:200] if error else None,
+                    "error": _safe_error(error) if error else None,
                     "feature": merged_meta.get("feature"),
                     "user_id": merged_meta.get("user_id"),
                     "project": project,
@@ -226,7 +245,7 @@ def _wrap_openai(client: Any, project: str, default_meta: dict):
                     "cost_usd": cost,
                     "latency_ms": elapsed,
                     "status": status,
-                    "error": str(error)[:200] if error else None,
+                    "error": _safe_error(error) if error else None,
                     "feature": merged_meta.get("feature"),
                     "user_id": merged_meta.get("user_id"),
                     "project": project,

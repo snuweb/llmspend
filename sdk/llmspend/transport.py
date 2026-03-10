@@ -7,7 +7,9 @@ Design rules:
 - Fall back to local SQLite if no backend configured
 """
 
+import atexit
 import json
+import logging
 import threading
 import time
 from collections import deque
@@ -20,12 +22,18 @@ _flush_interval: float = 5.0  # seconds
 _flush_thread: threading.Thread | None = None
 _running = False
 _local_path: str | None = None
+_thread_lock = threading.Lock()
+
+log = logging.getLogger("llmspend")
 
 
 def configure(backend_url: str | None = None, api_key: str | None = None,
               local_path: str | None = None, flush_interval: float = 5.0):
     """Configure the transport layer."""
     global _backend_url, _api_key, _local_path, _flush_interval
+    if backend_url and not backend_url.startswith("https://"):
+        if not backend_url.startswith("http://localhost") and not backend_url.startswith("http://127.0.0.1"):
+            log.warning("llmspend: backend_url uses HTTP — API key will be sent unencrypted. Use HTTPS in production.")
     _backend_url = backend_url.rstrip("/") if backend_url else None
     _api_key = api_key
     _local_path = local_path
@@ -45,11 +53,12 @@ def send(event: dict[str, Any]):
 def _ensure_flush_thread():
     """Start the background flush thread if not already running."""
     global _flush_thread, _running
-    if _flush_thread is not None and _flush_thread.is_alive():
-        return
-    _running = True
-    _flush_thread = threading.Thread(target=_flush_loop, daemon=True)
-    _flush_thread.start()
+    with _thread_lock:
+        if _flush_thread is not None and _flush_thread.is_alive():
+            return
+        _running = True
+        _flush_thread = threading.Thread(target=_flush_loop, daemon=True)
+        _flush_thread.start()
 
 
 def _flush_loop():
@@ -123,7 +132,8 @@ def _save_local(batch: list[dict]):
         except (KeyError, ImportError):
             real_home = os.path.expanduser("~")
         db_path = os.path.join(real_home, ".llmspend", "events.db")
-    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    db_dir = os.path.dirname(db_path)
+    os.makedirs(db_dir, mode=0o700, exist_ok=True)
 
     try:
         conn = sqlite3.connect(db_path)
@@ -169,3 +179,7 @@ def _save_local(batch: list[dict]):
         conn.close()
     except Exception:
         pass  # Last resort: silently drop. Never crash the developer's app.
+
+
+# Flush remaining events on process exit
+atexit.register(_flush)
