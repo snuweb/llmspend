@@ -2,9 +2,7 @@
 
 **Know where your AI money goes.**
 
-Track LLM API costs per feature, per model, per user. 2 lines of code. Zero config.
-
-## Install
+Track LLM API costs per feature, per model, per user. 2 lines of code. Zero dependencies. Local-first.
 
 ```bash
 pip install llmspend
@@ -21,14 +19,26 @@ client = monitor.wrap(anthropic.Anthropic(), project="my-app")
 
 # Use it exactly as before
 response = client.messages.create(
-    model="claude-haiku-4-5-20251001",
-    max_tokens=500,
+    model="claude-sonnet-4-6",
+    max_tokens=1000,
     messages=[{"role": "user", "content": "Hello"}]
 )
 # Cost, tokens, and latency are now tracked automatically
 ```
 
+Works with OpenAI too:
+
+```python
+import openai
+from llmspend import monitor
+
+client = monitor.wrap(openai.OpenAI(), project="my-app")
+# All chat.completions.create calls are now tracked
+```
+
 ## Tag by Feature
+
+See exactly which part of your app is burning money:
 
 ```python
 response = client.messages.create(
@@ -39,66 +49,99 @@ response = client.messages.create(
 )
 ```
 
-## View Your Costs
+## CLI
 
 ```bash
-# Last 24 hours, grouped by model
+# Cost summary (last 24h by default)
 llmspend stats
 
 # Last 7 days, grouped by feature
 llmspend stats --last 7d --by feature
 
-# Most expensive calls
+# Most expensive individual calls
 llmspend top
 
-# Export as JSON
+# Export all events as JSON
 llmspend export
 ```
 
+Output:
+
 ```
   LLMSpend — Last 7d
-  ──────────────────────────────────────────────────
+  ──────────────────────────────────────────────────────
   Total: $12.4320 across 2,847 calls
 
   Group                      Calls       Cost    Avg ms
   ───────────────────────── ────── ────────── ────────
-  claude-sonnet-4-6            312   $8.9400     1240ms
-  claude-haiku-4-5             1893   $2.1200      430ms
-  gpt-4o-mini                  642   $1.3720      380ms
+  chatbot                     1204   $7.2100     1180ms
+  search                       893   $3.8900      640ms
+  summarizer                   750   $1.3320      380ms
 ```
 
-## Works with OpenAI too
+## Local Dashboard
 
-```python
-import openai
-from llmspend import monitor
-
-client = monitor.wrap(openai.OpenAI(), project="my-app")
-# All chat.completions.create calls are now tracked
+```bash
+llmspend dashboard
 ```
+
+Opens a local web dashboard at `localhost:8888` — cost breakdown by model, feature, and time. Auto-refreshes. No account needed.
+
+## How It Works
+
+1. `monitor.wrap()` patches `client.messages.create` (Anthropic) or `client.chat.completions.create` (OpenAI)
+2. Every API call is intercepted — tokens, cost, latency, and your tags are recorded
+3. Events flush to a local SQLite database at `~/.llmspend/events.db` every 5 seconds via a background thread
+4. Zero overhead on your API calls — logging happens asynchronously after the response returns
 
 ## What Gets Tracked
 
 Per API call:
 - Provider, model, timestamp
 - Input/output tokens
-- Cost in USD
+- Cost in USD (calculated from published pricing)
 - Latency in ms
-- Your custom tags (feature, user_id)
+- Your custom tags (feature, user_id, or any key-value pair)
 
 What is **never** tracked:
 - Prompt content
 - Response content
 - API keys
 
-## Self-Hosted Dashboard
+## Supported Models
 
-Coming soon — React dashboard for visualizing costs locally.
+**Anthropic**: Claude Opus 4, Sonnet 4, Haiku 4.5, and all dated variants
+
+**OpenAI**: GPT-4o, GPT-4.1, o3, o4-mini, and all variants
+
+Cost calculation uses prefix matching — `claude-haiku-4-5-20251001` matches the `claude-haiku-4` pricing tier. Unknown models are tracked with `null` cost (tokens and latency still recorded).
+
+## Configuration
+
+```python
+from llmspend import monitor
+
+# Default: logs to ~/.llmspend/events.db
+monitor.configure()
+
+# Custom local path
+monitor.configure(local_path="/var/log/my-app/llmspend.db")
+
+# Future: send to hosted dashboard
+monitor.configure(backend_url="https://llmspend.dev", api_key="ls_...")
+```
+
+## Design Principles
+
+- **Never crash your app.** All tracking runs in try/except. If LLMSpend fails, your API call still works.
+- **Never store prompts.** Only metadata (tokens, cost, timing). Your data stays private.
+- **Zero dependencies.** Pure Python stdlib. No requests, no aiohttp, no protobuf.
+- **Local-first.** Works offline. No account required. Your data stays on your machine.
 
 ## Hosted Version
 
-Coming soon at [llmspend.dev](https://llmspend.dev) — team dashboards, alerts, cost forecasting.
+Coming soon at [llmspend.dev](https://llmspend.dev) — team dashboards, alerts, budget caps, and cost forecasting.
 
 ## License
 
-MIT
+MIT — use it however you want.
