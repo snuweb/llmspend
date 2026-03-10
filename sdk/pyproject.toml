@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "llmspend"
+version = "0.1.0"
+description = "Know where your AI money goes. Track LLM API costs per feature, per model, per user."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "Saadaq Abdirahman"}]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries",
+]
+keywords = ["llm", "cost", "monitoring", "anthropic", "openai", "tokens", "api"]
+
+[project.scripts]
+llmspend = "llmspend.cli:main"
+
+[project.urls]
+Homepage = "https://llmspend.dev"
+Repository = "https://github.com/snuweb/llmspend"
+Documentation = "https://llmspend.dev/docs"
+
+[tool.setuptools.packages.find]
+include = ["llmspend*"]
