@@ -7,6 +7,6 @@ Usage:
 That's it. Every API call is now tracked with cost, tokens, and latency.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.2"
 
 from llmspend.monitor import wrap, configure  # noqa: F401

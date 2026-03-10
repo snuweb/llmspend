@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llmspend"
-version = "0.1.0"
+version = "0.1.2"
 description = "Know where your AI money goes. Track LLM API costs per feature, per model, per user."
 readme = "README.md"
 license = {text = "MIT"}

@@ -211,47 +211,119 @@ def _wrap_openai(client: Any, project: str, default_meta: dict):
         meta = kwargs.pop("llmspend", {})
         merged_meta = {**default_meta, **meta}
 
+        is_stream = kwargs.get("stream", False)
+
         start = time.monotonic()
         error = None
         response = None
 
         try:
             response = original_create(*args, **kwargs)
+            if is_stream:
+                return _TrackedOpenAIStream(
+                    response, start, kwargs.get("model", "unknown"),
+                    merged_meta, project
+                )
             return response
         except Exception as e:
             error = e
             raise
         finally:
-            try:
-                elapsed = int((time.monotonic() - start) * 1000)
-                model = kwargs.get("model", "unknown")
-                tokens_in = 0
-                tokens_out = 0
-                status = "error"
+            # Only log non-streaming calls here; streaming logs on exhaustion
+            if not is_stream:
+                try:
+                    elapsed = int((time.monotonic() - start) * 1000)
+                    model = kwargs.get("model", "unknown")
+                    tokens_in = 0
+                    tokens_out = 0
+                    status = "error"
 
-                if response is not None and hasattr(response, "usage") and response.usage:
-                    tokens_in = getattr(response.usage, "prompt_tokens", 0) or 0
-                    tokens_out = getattr(response.usage, "completion_tokens", 0) or 0
-                    status = "success"
+                    if response is not None and hasattr(response, "usage") and response.usage:
+                        tokens_in = getattr(response.usage, "prompt_tokens", 0) or 0
+                        tokens_out = getattr(response.usage, "completion_tokens", 0) or 0
+                        status = "success"
 
-                cost = calculate_cost("openai", model, tokens_in, tokens_out)
+                    cost = calculate_cost("openai", model, tokens_in, tokens_out)
 
-                event = {
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "provider": "openai",
-                    "model": model,
-                    "tokens_in": tokens_in,
-                    "tokens_out": tokens_out,
-                    "cost_usd": cost,
-                    "latency_ms": elapsed,
-                    "status": status,
-                    "error": _safe_error(error) if error else None,
-                    "feature": merged_meta.get("feature"),
-                    "user_id": merged_meta.get("user_id"),
-                    "project": project,
-                }
-                transport.send(event)
-            except Exception:
-                pass  # Never crash the developer's app
+                    event = {
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                        "provider": "openai",
+                        "model": model,
+                        "tokens_in": tokens_in,
+                        "tokens_out": tokens_out,
+                        "cost_usd": cost,
+                        "latency_ms": elapsed,
+                        "status": status,
+                        "error": _safe_error(error) if error else None,
+                        "feature": merged_meta.get("feature"),
+                        "user_id": merged_meta.get("user_id"),
+                        "project": project,
+                    }
+                    transport.send(event)
+                except Exception:
+                    pass  # Never crash the developer's app
 
     client.chat.completions.create = tracked_create
+
+
+class _TrackedOpenAIStream:
+    """Wraps an OpenAI streaming response to capture usage from the final chunk."""
+
+    def __init__(self, stream, start: float, model: str, meta: dict, project: str):
+        self._stream = stream
+        self._start = start
+        self._model = model
+        self._meta = meta
+        self._project = project
+        self._tokens_in = 0
+        self._tokens_out = 0
+        self._logged = False
+
+    def __iter__(self):
+        try:
+            for chunk in self._stream:
+                # OpenAI sends usage in the final chunk when stream_options={"include_usage": True}
+                if hasattr(chunk, "usage") and chunk.usage:
+                    self._tokens_in = getattr(chunk.usage, "prompt_tokens", 0) or 0
+                    self._tokens_out = getattr(chunk.usage, "completion_tokens", 0) or 0
+                yield chunk
+        finally:
+            self._log_event()
+
+    def __enter__(self):
+        if hasattr(self._stream, "__enter__"):
+            self._stream.__enter__()
+        return self
+
+    def __exit__(self, *exc):
+        result = None
+        if hasattr(self._stream, "__exit__"):
+            result = self._stream.__exit__(*exc)
+        self._log_event()
+        return result
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+    def _log_event(self):
+        if self._logged:
+            return
+        self._logged = True
+        try:
+            elapsed = int((time.monotonic() - self._start) * 1000)
+            cost = calculate_cost("openai", self._model, self._tokens_in, self._tokens_out)
+            transport.send({
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "provider": "openai",
+                "model": self._model,
+                "tokens_in": self._tokens_in,
+                "tokens_out": self._tokens_out,
+                "cost_usd": cost,
+                "latency_ms": elapsed,
+                "status": "success",
+                "feature": self._meta.get("feature"),
+                "user_id": self._meta.get("user_id"),
+                "project": self._project,
+            })
+        except Exception:
+            pass
