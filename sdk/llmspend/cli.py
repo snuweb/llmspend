@@ -152,6 +152,9 @@ def main():
 
     sub.add_parser("export", help="Export all events as JSON")
 
+    dash_p = sub.add_parser("dashboard", help="Open local web dashboard")
+    dash_p.add_argument("--port", type=int, default=8888, help="Port (default 8888)")
+
     args = parser.parse_args()
 
     if args.command == "stats":
@@ -160,6 +163,9 @@ def main():
         cmd_top(args)
     elif args.command == "export":
         cmd_export(args)
+    elif args.command == "dashboard":
+        from llmspend.dashboard import serve
+        serve(port=args.port)
     else:
         parser.print_help()
 
