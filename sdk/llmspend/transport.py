@@ -112,8 +112,17 @@ def _save_local(batch: list[dict]):
     """Append events to local SQLite database."""
     import sqlite3
     import os
+    import pwd
 
-    db_path = _local_path or os.path.expanduser("~/.llmspend/events.db")
+    # Use actual process user's home (not $HOME which may be wrong under sudo)
+    if _local_path:
+        db_path = _local_path
+    else:
+        try:
+            real_home = pwd.getpwuid(os.getuid()).pw_dir
+        except (KeyError, ImportError):
+            real_home = os.path.expanduser("~")
+        db_path = os.path.join(real_home, ".llmspend", "events.db")
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
 
     try:
