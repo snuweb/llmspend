@@ -121,6 +121,93 @@ export default function App() {
         </div>
       </section>
 
+      {/* ── Dashboard Preview ────────────────────── */}
+      <section className="dashboard-section section">
+        <h2>What You'll See</h2>
+        <p className="dashboard-headline">Real-time cost visibility without leaving your terminal — or use the self-hosted dashboard.</p>
+
+        <div className="dashboard-preview">
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-title">Today's Spend</span>
+              <span className="dash-card-badge">Live</span>
+            </div>
+            <div className="dash-card-value">$4.23</div>
+            <div className="dash-card-sub">↑ 12% vs yesterday</div>
+          </div>
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-title">API Calls</span>
+              <span className="dash-card-badge">24h</span>
+            </div>
+            <div className="dash-card-value">1,847</div>
+            <div className="dash-card-sub">Across 3 features</div>
+          </div>
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-title">Top Feature</span>
+              <span className="dash-card-badge">Cost</span>
+            </div>
+            <div className="dash-card-value">chatbot</div>
+            <div className="dash-card-sub">$2.94 — 68% of spend</div>
+          </div>
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <span className="dash-card-title">Avg Latency</span>
+              <span className="dash-card-badge">p50</span>
+            </div>
+            <div className="dash-card-value">430ms</div>
+            <div className="dash-card-sub">Haiku: 180ms · Sonnet: 1.2s</div>
+          </div>
+        </div>
+
+        <div className="dash-table-wrap">
+          <table className="dash-table">
+            <thead>
+              <tr>
+                <th>Feature</th>
+                <th>Model</th>
+                <th>Calls</th>
+                <th>Cost</th>
+                <th>Avg Latency</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>chatbot</td><td>claude-haiku-4-5</td><td>1,234</td><td className="cost">$2.94</td><td>180ms</td></tr>
+              <tr><td>summarizer</td><td>claude-sonnet-4-6</td><td>312</td><td className="cost">$1.87</td><td>1,240ms</td></tr>
+              <tr><td>classifier</td><td>gpt-4o-mini</td><td>201</td><td className="cost">$0.42</td><td>95ms</td></tr>
+              <tr><td>embeddings</td><td>text-embedding-3</td><td>100</td><td className="cost">$0.03</td><td>45ms</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ── Comparison ─────────────────────────────── */}
+      <section className="compare-section section">
+        <h2>Why not just use the provider dashboard?</h2>
+        <div className="compare-grid">
+          <div className="compare-card compare-them">
+            <h3>Provider Dashboard</h3>
+            <ul>
+              <li>Total spend this month</li>
+              <li>Per-model totals</li>
+              <li>Invoice at end of month</li>
+            </ul>
+          </div>
+          <div className="compare-card compare-us">
+            <h3>LLMSpend</h3>
+            <ul>
+              <li>Cost per feature, per user, per call</li>
+              <li>Real-time alerts before the bill arrives</li>
+              <li>Which endpoint is burning your budget</li>
+              <li>Cost trends and anomaly detection</li>
+              <li>Works offline with local SQLite</li>
+              <li>Open source — self-host everything</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* ── Open Source CTA ──────────────────────── */}
       <section className="oss-section section">
         <div className="oss-box">
@@ -140,8 +227,40 @@ export default function App() {
         </div>
       </section>
 
+      {/* ── Contact ────────────────────────────────── */}
+      <section className="contact-section section">
+        <h2>Get in Touch</h2>
+        <p className="contact-sub">Questions, feedback, or want to contribute? Reach out.</p>
+        <div className="contact-grid">
+          <a href="https://github.com/snuweb/llmspend/issues" target="_blank" rel="noopener" className="contact-card">
+            <div className="contact-icon">!</div>
+            <h3>GitHub Issues</h3>
+            <p>Bug reports, feature requests, and discussions.</p>
+          </a>
+          <a href="https://github.com/snuweb/llmspend" target="_blank" rel="noopener" className="contact-card">
+            <div className="contact-icon">*</div>
+            <h3>Contribute</h3>
+            <p>PRs welcome. Check the README for contribution guidelines.</p>
+          </a>
+          <a href="mailto:info@llmspend.dev" className="contact-card">
+            <div className="contact-icon">@</div>
+            <h3>Email</h3>
+            <p>info@llmspend.dev — for partnerships and enterprise inquiries.</p>
+          </a>
+        </div>
+      </section>
+
       {/* ── Footer ───────────────────────────────── */}
       <footer className="footer">
+        <div className="footer-links">
+          <a href="https://github.com/snuweb/llmspend" target="_blank" rel="noopener">GitHub</a>
+          <span>·</span>
+          <a href="https://pypi.org/project/llmspend/" target="_blank" rel="noopener">PyPI</a>
+          <span>·</span>
+          <a href="https://github.com/snuweb/llmspend/issues" target="_blank" rel="noopener">Issues</a>
+          <span>·</span>
+          <a href="mailto:info@llmspend.dev">Contact</a>
+        </div>
         <p>
           LLMSpend is open source software by{' '}
           <a href="https://github.com/snuweb" target="_blank" rel="noopener">snuweb</a>.
