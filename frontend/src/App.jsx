@@ -242,10 +242,10 @@ export default function App() {
             <h3>Contribute</h3>
             <p>PRs welcome. Check the README for contribution guidelines.</p>
           </a>
-          <a href="mailto:info@llmspend.dev" className="contact-card">
+          <a href="https://github.com/snuweb/llmspend/discussions" target="_blank" rel="noopener" className="contact-card">
             <div className="contact-icon">@</div>
-            <h3>Email</h3>
-            <p>info@llmspend.dev — for partnerships and enterprise inquiries.</p>
+            <h3>Discussions</h3>
+            <p>Questions, ideas, and general chat about LLMSpend.</p>
           </a>
         </div>
       </section>
@@ -259,7 +259,7 @@ export default function App() {
           <span>·</span>
           <a href="https://github.com/snuweb/llmspend/issues" target="_blank" rel="noopener">Issues</a>
           <span>·</span>
-          <a href="mailto:info@llmspend.dev">Contact</a>
+          <a href="https://github.com/snuweb/llmspend/discussions" target="_blank" rel="noopener">Discuss</a>
         </div>
         <p>
           LLMSpend is open source software by{' '}
