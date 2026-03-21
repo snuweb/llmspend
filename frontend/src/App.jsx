@@ -1,4 +1,13 @@
+import { useState, useEffect } from 'react'
+
 export default function App() {
+  const [stars, setStars] = useState(null)
+  useEffect(() => {
+    fetch('https://api.github.com/repos/snuweb/llmspend')
+      .then(r => r.json())
+      .then(d => { if (d.stargazers_count != null) setStars(d.stargazers_count) })
+      .catch(() => {})
+  }, [])
   return (
     <>
       {/* ── Nav ──────────────────────────────────── */}
@@ -8,7 +17,7 @@ export default function App() {
           LLMSpend
         </div>
         <div className="nav-links">
-          <a href="https://github.com/snuweb/llmspend" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/snuweb/llmspend" target="_blank" rel="noopener">⭐ GitHub{stars != null ? ` ${stars}` : ''}</a>
           <a href="https://github.com/snuweb/llmspend#quick-start" target="_blank" rel="noopener">Docs</a>
           <a href="https://github.com/snuweb/llmspend" target="_blank" rel="noopener" className="nav-cta">Get Started</a>
         </div>
@@ -221,7 +230,7 @@ export default function App() {
               <button className="btn-primary">pip install llmspend</button>
             </a>
             <a href="https://github.com/snuweb/llmspend" target="_blank" rel="noopener">
-              <button className="btn-secondary">Star on GitHub</button>
+              <button className="btn-secondary">⭐ Star on GitHub{stars != null ? ` (${stars})` : ''}</button>
             </a>
           </div>
         </div>
