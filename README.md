@@ -67,3 +67,7 @@ backend/     — Hosted dashboard API (coming soon)
 ## License
 
 MIT
+
+---
+
+If this saved you from a surprise AI bill, consider giving it a ⭐
