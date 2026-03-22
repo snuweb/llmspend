@@ -48,6 +48,37 @@ $ llmspend stats --last 7d --by feature
 - **Privacy-first** — never stores prompts or responses, only metadata
 - **Never crashes your app** — all tracking runs in try/except
 
+## Know What Each User Costs You
+
+Building a SaaS app with AI? You need to know which users are burning your budget.
+
+```python
+# Tag every call with the user
+response = client.messages.create(
+    model="claude-haiku-4-5-20251001",
+    max_tokens=500,
+    messages=[{"role": "user", "content": user_message}],
+    llmspend={"feature": "chatbot", "user_id": current_user.id}
+)
+```
+
+```bash
+$ llmspend stats --last 7d --by user_id
+
+  LLMSpend — Last 7d — By User
+  ──────────────────────────────────────────────────────
+  Total: $47.82 across 8,291 calls
+
+  User                       Calls       Cost    Avg ms
+  ───────────────────────── ────── ────────── ────────
+  u_8832 (power user)        3,102  $28.4100     890ms
+  u_1204                       912   $6.2300     430ms
+  u_5519                       488   $3.1800     380ms
+  ... 47 more users
+```
+
+One user is 59% of your AI spend. Without LLMSpend, you'd find out when the invoice arrives.
+
 ## How It Works
 
 `monitor.wrap()` patches your client's create method. Every API call is intercepted after it completes — tokens, cost, and latency are logged to a local SQLite database (`~/.llmspend/events.db`) via a background thread. Zero overhead on your API calls.
