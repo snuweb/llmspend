@@ -10,6 +10,11 @@ PRICING = {
         "claude-opus-4": (15.00, 75.00),
         "claude-sonnet-4": (3.00, 15.00),
         "claude-haiku-4": (0.80, 4.00),
+        "claude-3-5-sonnet": (3.00, 15.00),
+        "claude-3-5-haiku": (0.80, 4.00),
+        "claude-3-opus": (15.00, 75.00),
+        "claude-3-sonnet": (3.00, 15.00),
+        "claude-3-haiku": (0.25, 1.25),
     },
     "openai": {
         "gpt-4o-mini": (0.15, 0.60),
@@ -20,6 +25,32 @@ PRICING = {
         "o4-mini": (1.10, 4.40),
         "o3-mini": (1.10, 4.40),
         "o3": (2.00, 8.00),
+        "gpt-4-turbo": (10.00, 30.00),
+        "gpt-4": (30.00, 60.00),
+        "gpt-3.5-turbo": (0.50, 1.50),
+    },
+    "google": {
+        "gemini-2.5-pro": (1.25, 10.00),
+        "gemini-2.5-flash": (0.15, 0.60),
+        "gemini-2.0-flash": (0.10, 0.40),
+        "gemini-1.5-pro": (1.25, 5.00),
+        "gemini-1.5-flash": (0.075, 0.30),
+    },
+    "groq": {
+        "llama-3.3-70b": (0.59, 0.79),
+        "llama-3.1-8b": (0.05, 0.08),
+        "mixtral-8x7b": (0.24, 0.24),
+        "gemma2-9b": (0.20, 0.20),
+    },
+    "mistral": {
+        "mistral-large": (2.00, 6.00),
+        "mistral-small": (0.20, 0.60),
+        "codestral": (0.30, 0.90),
+        "mistral-nemo": (0.15, 0.15),
+    },
+    "deepseek": {
+        "deepseek-chat": (0.14, 0.28),
+        "deepseek-reasoner": (0.55, 2.19),
     },
 }
 

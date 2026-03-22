@@ -43,7 +43,7 @@ $ llmspend stats --last 7d --by feature
 - **Per-feature cost tracking** — tag calls with `llmspend={"feature": "chatbot"}`
 - **CLI** — `llmspend stats`, `llmspend top`, `llmspend export`
 - **Local dashboard** — `llmspend dashboard` opens a web UI at localhost:8888
-- **Anthropic + OpenAI** — Claude and GPT models with automatic cost calculation
+- **6 providers** — Anthropic, OpenAI, Google Gemini, Groq, Mistral, DeepSeek
 - **Zero dependencies** — pure Python stdlib, no bloat
 - **Privacy-first** — never stores prompts or responses, only metadata
 - **Never crashes your app** — all tracking runs in try/except

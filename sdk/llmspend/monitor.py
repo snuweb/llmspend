@@ -65,8 +65,11 @@ def wrap(client: Any, project: str = "default", **default_metadata) -> Any:
 
     if provider == "anthropic":
         _wrap_anthropic(client, project, default_metadata)
-    elif provider == "openai":
-        _wrap_openai(client, project, default_metadata)
+    elif provider in ("openai", "groq"):
+        # Groq uses OpenAI-compatible API
+        _wrap_openai(client, project, default_metadata, provider=provider)
+    elif provider == "mistral":
+        _wrap_openai_style(client, project, default_metadata, provider="mistral")
 
     client._llmspend_wrapped = True
     return client
@@ -81,6 +84,12 @@ def _detect_provider(client: Any) -> str | None:
         return "anthropic"
     if "openai" in client_type or client_name in ("OpenAI", "AsyncOpenAI"):
         return "openai"
+    if "google" in client_type or "genai" in client_type or client_name == "GenerativeModel":
+        return "google"
+    if "groq" in client_type or client_name in ("Groq", "AsyncGroq"):
+        return "groq"
+    if "mistralai" in client_type or client_name in ("Mistral", "MistralClient"):
+        return "mistral"
     return None
 
 
@@ -203,8 +212,8 @@ def _wrap_anthropic_stream(client: Any, project: str, default_meta: dict):
     client.messages.stream = tracked_stream
 
 
-def _wrap_openai(client: Any, project: str, default_meta: dict):
-    """Patch openai.OpenAI().chat.completions.create to track calls."""
+def _wrap_openai(client: Any, project: str, default_meta: dict, provider: str = "openai"):
+    """Patch OpenAI-compatible client (OpenAI, Groq) to track calls."""
     original_create = client.chat.completions.create
 
     def tracked_create(*args, **kwargs):
@@ -222,14 +231,13 @@ def _wrap_openai(client: Any, project: str, default_meta: dict):
             if is_stream:
                 return _TrackedOpenAIStream(
                     response, start, kwargs.get("model", "unknown"),
-                    merged_meta, project
+                    merged_meta, project, provider=provider
                 )
             return response
         except Exception as e:
             error = e
             raise
         finally:
-            # Only log non-streaming calls here; streaming logs on exhaustion
             if not is_stream:
                 try:
                     elapsed = int((time.monotonic() - start) * 1000)
@@ -243,11 +251,11 @@ def _wrap_openai(client: Any, project: str, default_meta: dict):
                         tokens_out = getattr(response.usage, "completion_tokens", 0) or 0
                         status = "success"
 
-                    cost = calculate_cost("openai", model, tokens_in, tokens_out)
+                    cost = calculate_cost(provider, model, tokens_in, tokens_out)
 
-                    event = {
+                    transport.send({
                         "timestamp": datetime.now(timezone.utc).isoformat(),
-                        "provider": "openai",
+                        "provider": provider,
                         "model": model,
                         "tokens_in": tokens_in,
                         "tokens_out": tokens_out,
@@ -258,23 +266,81 @@ def _wrap_openai(client: Any, project: str, default_meta: dict):
                         "feature": merged_meta.get("feature"),
                         "user_id": merged_meta.get("user_id"),
                         "project": project,
-                    }
-                    transport.send(event)
+                    })
                 except Exception:
-                    pass  # Never crash the developer's app
+                    pass
 
     client.chat.completions.create = tracked_create
+
+
+def _wrap_openai_style(client: Any, project: str, default_meta: dict, provider: str = "mistral"):
+    """Wrap Mistral and other OpenAI-style clients that use client.chat.complete()."""
+    # Mistral uses client.chat.complete() not client.chat.completions.create()
+    chat_obj = getattr(client, "chat", None)
+    if chat_obj is None:
+        return
+
+    original_fn = getattr(chat_obj, "complete", None) or getattr(chat_obj, "create", None)
+    if original_fn is None:
+        return
+
+    def tracked(*args, **kwargs):
+        meta = kwargs.pop("llmspend", {})
+        merged_meta = {**default_meta, **meta}
+        start = time.monotonic()
+        error = None
+        response = None
+        try:
+            response = original_fn(*args, **kwargs)
+            return response
+        except Exception as e:
+            error = e
+            raise
+        finally:
+            try:
+                elapsed = int((time.monotonic() - start) * 1000)
+                model = kwargs.get("model", "unknown")
+                tokens_in = 0
+                tokens_out = 0
+                status = "error"
+                if response is not None and hasattr(response, "usage") and response.usage:
+                    tokens_in = getattr(response.usage, "prompt_tokens", 0) or getattr(response.usage, "total_tokens", 0) or 0
+                    tokens_out = getattr(response.usage, "completion_tokens", 0) or 0
+                    status = "success"
+                cost = calculate_cost(provider, model, tokens_in, tokens_out)
+                transport.send({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "provider": provider,
+                    "model": model,
+                    "tokens_in": tokens_in,
+                    "tokens_out": tokens_out,
+                    "cost_usd": cost,
+                    "latency_ms": elapsed,
+                    "status": status,
+                    "error": _safe_error(error) if error else None,
+                    "feature": merged_meta.get("feature"),
+                    "user_id": merged_meta.get("user_id"),
+                    "project": project,
+                })
+            except Exception:
+                pass
+
+    if hasattr(chat_obj, "complete"):
+        chat_obj.complete = tracked
+    else:
+        chat_obj.create = tracked
 
 
 class _TrackedOpenAIStream:
     """Wraps an OpenAI streaming response to capture usage from the final chunk."""
 
-    def __init__(self, stream, start: float, model: str, meta: dict, project: str):
+    def __init__(self, stream, start: float, model: str, meta: dict, project: str, provider: str = "openai"):
         self._stream = stream
         self._start = start
         self._model = model
         self._meta = meta
         self._project = project
+        self._provider = provider
         self._tokens_in = 0
         self._tokens_out = 0
         self._logged = False
@@ -311,10 +377,10 @@ class _TrackedOpenAIStream:
         self._logged = True
         try:
             elapsed = int((time.monotonic() - self._start) * 1000)
-            cost = calculate_cost("openai", self._model, self._tokens_in, self._tokens_out)
+            cost = calculate_cost(self._provider, self._model, self._tokens_in, self._tokens_out)
             transport.send({
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "provider": "openai",
+                "provider": self._provider,
                 "model": self._model,
                 "tokens_in": self._tokens_in,
                 "tokens_out": self._tokens_out,
