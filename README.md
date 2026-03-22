@@ -1,8 +1,14 @@
 # LLMSpend
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-green.svg)](https://python.org)
+[![PyPI](https://img.shields.io/pypi/v/llmspend)](https://pypi.org/project/llmspend/)
+
 **Know where your AI money goes.**
 
 Track LLM API costs per feature, per model, per user. 2 lines of code. Zero dependencies. Local-first.
+
+**Supports:** Anthropic · OpenAI · Google Gemini · Groq · Mistral · DeepSeek
 
 ```bash
 pip install llmspend
@@ -94,6 +100,31 @@ sdk/          — Python package (pip install llmspend)
 frontend/    — Landing page (llmspend.dev)
 backend/     — Hosted dashboard API (coming soon)
 ```
+
+## Supported Providers
+
+| Provider | Models | Status |
+|----------|--------|--------|
+| Anthropic | Claude Opus, Sonnet, Haiku (all versions) | ✅ |
+| OpenAI | GPT-4o, 4.1, o3, o4-mini, 3.5 | ✅ |
+| Google | Gemini 2.5, 2.0, 1.5 (Pro + Flash) | ✅ |
+| Groq | Llama 3.3, Mixtral, Gemma | ✅ |
+| Mistral | Large, Small, Codestral, Nemo | ✅ |
+| DeepSeek | Chat, Reasoner | ✅ |
+| Cohere | — | [Help wanted](../../issues) |
+| Together | — | [Help wanted](../../issues) |
+| Replicate | — | [Help wanted](../../issues) |
+
+Adding a provider is ~20 lines of code. See [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-new-provider).
+
+## Contributing
+
+PRs welcome! Check [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+Easy ways to help:
+- Add pricing for new models
+- Test with your provider and report issues
+- Add support for a new provider (~20 lines)
 
 ## License
 
